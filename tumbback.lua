@@ -85,45 +85,48 @@ end
 
 -- xml parsing
 for files in lfs.dir(XMLOUTDIR) do
-	attr = lfs.attributes(files)
-	if attr.mode ~= "directory" then
-		for line in io.lines(files) do
-			for m in line:gmatch('<photo[-]url%smax[-]width="[1]-[25][80]0">(.-)</photo[-]url>') do
-				local content = http.request(m)
-				-- extract filename
-				local n = string.gsub(m, '.*/', '')
-				-- check for filenames with an extension; if not, add it
-				local ext = string.match(n, '.*([.].+)$')
-				if not ext then
-					outfile = IMGOUTDIR .. n .. '.jpg'
-				else
-					outfile = IMGOUTDIR .. n
+	if files ~= "." and file ~= ".." then
+		local f = XMLOUTDIR .. '/' .. files
+		attr = lfs.attributes(f)
+		if attr.mode ~= "directory" then
+			for line in io.lines(f) do
+				for m in line:gmatch('<photo[-]url%smax[-]width="[1]-[25][80]0">(.-)</photo[-]url>') do
+					local content = http.request(m)
+					-- extract filename
+					local n = string.gsub(m, '.*/', '')
+					-- check for filenames with an extension; if not, add it
+					local ext = string.match(n, '.*([.].+)$')
+					if not ext then
+						outfile = IMGOUTDIR .. n .. '.jpg'
+					else
+						outfile = IMGOUTDIR .. n
+					end
+					put(outfile, content)
 				end
-				put(outfile, content)
-			end
-			-- currently audio and video backup is basically worthless, 
-			-- still have to find a way to extract and download the real 
-			-- content
-			for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
-				local content = http.request(v)
-				-- extract filename
-				local n = string.gsub(v, '.*/', '')
-				outfile = VIDOUTDIR .. n
-				put(outfile, content)
-			end
-			for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
-				local content = http.request(s)
-				-- extract filename
-				local n = string.gsub(s, '.*/', '')
-				outfile = VIDOUTDIR .. n
-				put(outfile, content)
-			end
-			for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
-				local content = http.request(a)
-				-- extract and unique string as filename
-				local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
-				outfile = AUDOUTDIR .. n .. '.swf'
-				put(outfile, content)
+				-- currently audio and video backup is basically worthless, 
+				-- still have to find a way to extract and download the real 
+				-- content
+				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
+					local content = http.request(v)
+					-- extract filename
+					local n = string.gsub(v, '.*/', '')
+					outfile = VIDOUTDIR .. n
+					put(outfile, content)
+				end
+				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
+					local content = http.request(s)
+					-- extract filename
+					local n = string.gsub(s, '.*/', '')
+					outfile = VIDOUTDIR .. n
+					put(outfile, content)
+				end
+				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
+					local content = http.request(a)
+					-- extract and unique string as filename
+					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
+					outfile = AUDOUTDIR .. n .. '.swf'
+					put(outfile, content)
+				end
 			end
 		end
 	end
