@@ -90,7 +90,7 @@ for files in lfs.dir(XMLOUTDIR) do
 		attr = lfs.attributes(f)
 		if attr.mode ~= "directory" then
 			for line in io.lines(f) do
-				for m in line:gmatch('<photo[-]url%smax[-]width="[1]-[25][80]0">(.-)</photo[-]url>') do
+				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
 					local content = http.request(m)
 					-- extract filename
 					local n = string.gsub(m, '.*/', '')
