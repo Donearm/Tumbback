@@ -6,9 +6,12 @@ http = require("socket.http")
 lfs = require("lfs")
 
 function put(f, c)
-	local fw = io.open(f, "w+")
-	fw:write(c)
-	fw:close()
+	if c ~= nil then
+		-- write only if we have something to
+		local fw = io.open(f, "w+")
+		fw:write(c)
+		fw:close()
+	end
 end
 
 function chkmk_dir(d)
