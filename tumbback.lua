@@ -47,7 +47,7 @@ function posts_filename(s, e)
 	end
 	return startpost, endpost
 end
-	
+
 
 TUMBLRURL = arg[1] or nil
 if not TUMBLRURL or not string.match(arg[1], "^http://") then
@@ -69,6 +69,27 @@ chkmk_dir(IMGOUTDIR)
 chkmk_dir(AUDOUTDIR)
 chkmk_dir(VIDOUTDIR)
 
+-- Video hosting base urls
+VIMEOBASEURL = 'http://vimeo.com/moogaloop/'
+
+
+function download_video(h, f)
+	if h == 'vimeo' then
+		for line in io.lines(f) do
+			for m in line:gmatch('"video":{"id":([0-9]+)') do
+				-- download the xml of the urls' video
+				local xml_vimeo = http.request(VIMEOBASEURL .. 'load/clip:' .. m)
+				-- extract signature and its expiry number
+				local signature = string.match(xml_vimeo, '<request_signature>(.-)</request_signature>')
+				local expires = string.match(xml_vimeo, '<request_signature_expires>(.-)</request_signature_expires>')
+
+				-- make up the video url and download it locally
+				local video = http.request(VIMEOBASEURL .. 'play/clip:' .. m .. '/' .. signature .. '/' .. expires .. '/?q=HD')
+				put(VIDOUTDIR .. m .. '.mp4', video)
+			end
+		end
+	end
+end
 
 local start = 0
 local num = 50 -- tumblr api limit
@@ -111,17 +132,19 @@ for files in lfs.dir(XMLOUTDIR) do
 				-- content
 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
 					local content = http.request(v)
+					download_video('vimeo', content)
 					-- extract filename
-					local n = string.gsub(v, '.*/', '')
-					outfile = VIDOUTDIR .. n
-					put(outfile, content)
+-- 					local n = string.gsub(v, '.*/', '')
+-- 					outfile = VIDOUTDIR .. n
+-- 					put(outfile, content)
 				end
 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
 					local content = http.request(s)
+					download_video('vimeo', content)
 					-- extract filename
-					local n = string.gsub(s, '.*/', '')
-					outfile = VIDOUTDIR .. n
-					put(outfile, content)
+-- 					local n = string.gsub(s, '.*/', '')
+-- 					outfile = VIDOUTDIR .. n
+-- 					put(outfile, content)
 				end
 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
 					local content = http.request(a)
