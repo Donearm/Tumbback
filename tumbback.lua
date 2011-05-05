@@ -128,12 +128,25 @@ for files in lfs.dir(XMLOUTDIR) do
 --				end
 				-- currently audio and video backup is limited to vimeo videos
 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
+--					print(v)
 					local content = http.request(v)
 					download_video('vimeo', content)
 				end
 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
+--					print(s)
 					local content = http.request(s)
 					download_video('vimeo', content)
+				end
+				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
+					-- tumblr hosted videos don't need to be sent to 
+					-- download_video
+					--
+					-- extract filename
+					local n = string.gsub(t, '.*/', '')
+					local outfile = VIDOUTDIR .. n .. '.mp4'
+					
+					local content = http.request(t)
+					put(outfile, content)
 				end
 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
 					local content = http.request(a)
