@@ -51,8 +51,9 @@ end
 
 TUMBLRURL = arg[1] or nil
 if not TUMBLRURL or not string.match(arg[1], "^http://") then
-	io.write(string.format("Usage: %s tumblr_url\n", arg[0]))
-	io.write("\nWhere tumblr_url is like http://myname.tumblr.com\n\n")
+	io.write(string.format("Usage: %s tumblr_url [path]\n", arg[0]))
+	io.write("\nWhere tumblr_url is like http://myname.tumblr.com\n")
+	io.write("and path is where to save the backup\n")
 	os.exit()
 end
 
@@ -75,8 +76,7 @@ VIMEOBASEURL = 'http://vimeo.com/moogaloop/'
 
 function download_video(h, f)
 	if h == 'vimeo' then
-		for line in io.lines(f) do
-			for m in line:gmatch('"video":{"id":([0-9]+)') do
+			for m in f:gmatch('"video":{"id":([0-9]+)') do
 				-- download the xml of the urls' video
 				local xml_vimeo = http.request(VIMEOBASEURL .. 'load/clip:' .. m)
 				-- extract signature and its expiry number
@@ -87,7 +87,6 @@ function download_video(h, f)
 				local video = http.request(VIMEOBASEURL .. 'play/clip:' .. m .. '/' .. signature .. '/' .. expires .. '/?q=HD')
 				put(VIDOUTDIR .. m .. '.mp4', video)
 			end
-		end
 	end
 end
 
@@ -98,14 +97,14 @@ TUMBLRAPIURL = TUMBLRURL .. "/api/read"
 local xmlout = http.request(TUMBLRAPIURL)
 local totalposts = string.match(xmlout, "<posts start=\".-\" total=\"(.-)\">")
 
-while start < tonumber(totalposts) do
-	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
-	local xmlout = http.request(TUMBLRAPIURL)
-	local startpost, endpost = posts_filename(start, num)
-	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
-	put(outfile, xmlout)
-	start = start + num
-end
+--while start < tonumber(totalposts) do
+--	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
+--	local xmlout = http.request(TUMBLRAPIURL)
+--	local startpost, endpost = posts_filename(start, num)
+--	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
+--	put(outfile, xmlout)
+--	start = start + num
+--end
 
 -- xml parsing
 for files in lfs.dir(XMLOUTDIR) do
@@ -114,37 +113,27 @@ for files in lfs.dir(XMLOUTDIR) do
 		attr = lfs.attributes(f)
 		if attr.mode ~= "directory" then
 			for line in io.lines(f) do
-				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
-					local content = http.request(m)
-					-- extract filename
-					local n = string.gsub(m, '.*/', '')
-					-- check for filenames with an extension; if not, add it
-					local ext = string.match(n, '.*([.].+)$')
-					if not ext then
-						outfile = IMGOUTDIR .. n .. '.jpg'
-					else
-						outfile = IMGOUTDIR .. n
-					end
-					put(outfile, content)
-				end
-				-- currently audio and video backup is basically worthless, 
-				-- still have to find a way to extract and download the real 
-				-- content
+--				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
+--					local content = http.request(m)
+--					-- extract filename
+--					local n = string.gsub(m, '.*/', '')
+--					-- check for filenames with an extension; if not, add it
+--					local ext = string.match(n, '.*([.].+)$')
+--					if not ext then
+--						outfile = IMGOUTDIR .. n .. '.jpg'
+--					else
+--						outfile = IMGOUTDIR .. n
+--					end
+--					put(outfile, content)
+--				end
+				-- currently audio and video backup is limited to vimeo videos
 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
 					local content = http.request(v)
 					download_video('vimeo', content)
-					-- extract filename
--- 					local n = string.gsub(v, '.*/', '')
--- 					outfile = VIDOUTDIR .. n
--- 					put(outfile, content)
 				end
 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
 					local content = http.request(s)
 					download_video('vimeo', content)
-					-- extract filename
--- 					local n = string.gsub(s, '.*/', '')
--- 					outfile = VIDOUTDIR .. n
--- 					put(outfile, content)
 				end
 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
 					local content = http.request(a)
