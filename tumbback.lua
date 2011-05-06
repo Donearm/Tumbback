@@ -97,14 +97,14 @@ TUMBLRAPIURL = TUMBLRURL .. "/api/read"
 local xmlout = http.request(TUMBLRAPIURL)
 local totalposts = string.match(xmlout, "<posts start=\".-\" total=\"(.-)\">")
 
-while start < tonumber(totalposts) do
-	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
-	local xmlout = http.request(TUMBLRAPIURL)
-	local startpost, endpost = posts_filename(start, num)
-	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
-	put(outfile, xmlout)
-	start = start + num
-end
+--while start < tonumber(totalposts) do
+--	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
+--	local xmlout = http.request(TUMBLRAPIURL)
+--	local startpost, endpost = posts_filename(start, num)
+--	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
+--	put(outfile, xmlout)
+--	start = start + num
+--end
 
 -- xml parsing
 for files in lfs.dir(XMLOUTDIR) do
@@ -113,44 +113,68 @@ for files in lfs.dir(XMLOUTDIR) do
 		attr = lfs.attributes(f)
 		if attr.mode ~= "directory" then
 			for line in io.lines(f) do
-				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
-					local content = http.request(m)
-					-- extract filename
-					local n = string.gsub(m, '.*/', '')
-					-- check for filenames with an extension; if not, add it
-					local ext = string.match(n, '.*([.].+)$')
-					if not ext then
-						outfile = IMGOUTDIR .. n .. '.jpg'
-					else
-						outfile = IMGOUTDIR .. n
-					end
-					put(outfile, content)
-				end
+--				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
+--					local content = http.request(m)
+--					-- extract filename
+--					local n = string.gsub(m, '.*/', '')
+--					-- check for filenames with an extension; if not, add it
+--					local ext = string.match(n, '.*([.].+)$')
+--					if not ext then
+--						outfile = IMGOUTDIR .. n .. '.jpg'
+--					else
+--						outfile = IMGOUTDIR .. n
+--					end
+--					put(outfile, content)
+--				end
 				-- currently audio and video backup is limited to vimeo and tumblr videos
 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
-					if v:match('youtube%.com') then
+					if v:match('youtube%.com/v/') then
 						-- extract id of video
 						local id = string.match(v, '.*/(.-)[?&]')
 						-- ask for info to get the token
---						local content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+						local token = string.match(info_content, 'token=(.-)&')
+						local title = string.match(info_content, 'title=(.-)&')
 --						-- request the video itself
---						local content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&fmt=18&asv=2')
-						put(VIDOUTDIR .. v, content)
+						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
+						put(VIDOUTDIR .. title, video_content)
+					elseif v:match('youtube%.com/embed/') then
+						local id = string.match(v, '.*/(.-)$')
+						-- ask for info to get the token
+						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+						local token = string.match(info_content, 'token=(.-)&')
+						local title = string.match(info_content, 'title=(.-)&')
+--						-- request the video itself
+						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
+						put(VIDOUTDIR .. title, video_content)
 					else
+--						print("vimeo video")
 						local content = http.request(v)
 						download_video('vimeo', content)
 					end
 				end
 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
-					if s:match('youtube%.com') then
+					if s:match('youtube%.com/v/') then
 						-- extract id of video
 						local id = string.match(s, '.*/(.-)[?&]')
 						-- ask for info to get the token
---						local content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+						local token = string.match(info_content, 'token=(.-)&')
+						local title = string.match(info_content, 'title=(.-)&')
 --						-- request the video itself
---						local content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&fmt=18&asv=2')
-						put(VIDOUTDIR .. v, content)
+						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
+						put(VIDOUTDIR .. title, video_content)
+					elseif s:match('youtube%.com/embed/') then
+						local id = string.match(s, '.*/(.-)$')
+						-- ask for info to get the token
+						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+						local token = string.match(info_content, 'token=(.-)&')
+						local title = string.match(info_content, 'title=(.-)&')
+--						-- request the video itself
+						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
+						put(VIDOUTDIR .. title, video_content)
 					else
+--						print("vimeo video")
 						local content = http.request(s)
 						download_video('vimeo', content)
 					end
