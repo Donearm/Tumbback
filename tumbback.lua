@@ -100,12 +100,13 @@ function download_video(arg)
 			else
 				id = string.match(arg.string, '.*/(.-)[?&]')
 			end
+			print(arg.string)
 			-- ask for info to get the token
 			local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
 			local token = string.match(info_content, 'token=(.-)&')
 			local title = string.match(info_content, 'title=(.-)&')
-	--						-- request the video itself
-			local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
+			-- request the video itself
+			local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&fmt=22&asv=2') -- fmt=22 is HD, 18 is normal quality (mp4)
 			put(VIDOUTDIR .. title, video_content)
 		elseif arg.host == 'tumblr' then
 			local n = string.gsub(arg.string, '.*/', '')
@@ -158,28 +159,28 @@ for files in lfs.dir(XMLOUTDIR) do
 		attr = lfs.attributes(f)
 		if attr.mode ~= "directory" then
 			for line in io.lines(f) do
-				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
-					local d = download_image{ string=m }
-				end
+--				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
+--					local d = download_image{ string=m }
+--				end
 				-- currently video backup is limited to vimeo and tumblr hosted videos
---				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
---					if v:match('youtube%.com/v/') then
---						local d = download_video{ host='youtube', string=v }
---					elseif v:match('youtube%.com/embed/') then
---						local d = download_video{ host='youtube', string=v, embed = true }
+				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
+					if v:match('youtube%.com/v/') then
+						local d = download_video{ host='youtube', string=v }
+					elseif v:match('youtube%.com/embed/') then
+						local d = download_video{ host='youtube', string=v, embed = true }
 --					else
 --						local d = download_video{ host='vimeo', string=v }
---					end
---				end
---				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
---					if s:match('youtube%.com/v/') then
---						local d = download_video{ host='youtube', string=s }
---					elseif s:match('youtube%.com/embed/') then
---						local d = download_video{ host='youtube', string=s }
+					end
+				end
+				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
+					if s:match('youtube%.com/v/') then
+						local d = download_video{ host='youtube', string=s }
+					elseif s:match('youtube%.com/embed/') then
+						local d = download_video{ host='youtube', string=s }
 --					else
 --						local d = download_video{ host='vimeo', string=s }
---					end
---				end
+					end
+				end
 --				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
 --					local d = download_video{ host='tumblr', string=t }
 --				end
