@@ -74,9 +74,14 @@ chkmk_dir(VIDOUTDIR)
 VIMEOBASEURL = 'http://vimeo.com/moogaloop/'
 
 
-function download_video(h, f)
-	if h == 'vimeo' then
-			for m in f:gmatch('"video":{"id":([0-9]+)') do
+function download_video(arg)
+	-- both arg.host and arg.string must be strings
+	if type(arg.host) ~= "string" or type(arg.string) ~= "string" then
+		error("either host or url string are missing")
+	else
+		if arg.host == 'vimeo' then
+			local data = http.request(arg.string)
+			for m in data:gmatch('"video":{"id":([0-9]+)') do
 				-- download the xml of the urls' video
 				local xml_vimeo = http.request(VIMEOBASEURL .. 'load/clip:' .. m)
 				-- extract signature and its expiry number
@@ -87,6 +92,46 @@ function download_video(h, f)
 				local video = http.request(VIMEOBASEURL .. 'play/clip:' .. m .. '/' .. signature .. '/' .. expires .. '/?q=HD')
 				put(VIDOUTDIR .. m .. '.mp4', video)
 			end
+		elseif arg.host == 'youtube' then
+			-- check whether is an embedded video or not
+			-- Extract video id
+			if arg.embed then
+				id = string.match(arg.string, '.*/(.-)$')
+			else
+				id = string.match(arg.string, '.*/(.-)[?&]')
+			end
+			-- ask for info to get the token
+			local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
+			local token = string.match(info_content, 'token=(.-)&')
+			local title = string.match(info_content, 'title=(.-)&')
+	--						-- request the video itself
+			local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
+			put(VIDOUTDIR .. title, video_content)
+		elseif arg.host == 'tumblr' then
+			local n = string.gsub(arg.string, '.*/', '')
+			local outfile = VIDOUTDIR .. n .. '.mp4'
+			
+			local content = http.request(arg.string)
+			put(outfile, content)
+		end
+	end
+end
+
+function download_image(arg)
+	if type(arg.string) ~= "string" then
+		error("no string given")
+	else
+		local content = http.request(arg.string)
+		-- extract filename
+		local n = string.gsub(arg.string, '.*/', '')
+		-- check for filenames with an extension, otherwise add it
+		local ext = string.match(n, '.*([.].+)$')
+		if not ext then
+			outfile = IMGOUTDIR .. n .. '.jpg'
+		else
+			outfile = IMGOUTDIR .. n
+		end
+		put(outfile, content)
 	end
 end
 
@@ -113,92 +158,40 @@ for files in lfs.dir(XMLOUTDIR) do
 		attr = lfs.attributes(f)
 		if attr.mode ~= "directory" then
 			for line in io.lines(f) do
---				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
---					local content = http.request(m)
---					-- extract filename
---					local n = string.gsub(m, '.*/', '')
---					-- check for filenames with an extension; if not, add it
---					local ext = string.match(n, '.*([.].+)$')
---					if not ext then
---						outfile = IMGOUTDIR .. n .. '.jpg'
+				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
+					local d = download_image{ string=m }
+				end
+				-- currently video backup is limited to vimeo and tumblr hosted videos
+--				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
+--					if v:match('youtube%.com/v/') then
+--						local d = download_video{ host='youtube', string=v }
+--					elseif v:match('youtube%.com/embed/') then
+--						local d = download_video{ host='youtube', string=v, embed = true }
 --					else
---						outfile = IMGOUTDIR .. n
+--						local d = download_video{ host='vimeo', string=v }
 --					end
+--				end
+--				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
+--					if s:match('youtube%.com/v/') then
+--						local d = download_video{ host='youtube', string=s }
+--					elseif s:match('youtube%.com/embed/') then
+--						local d = download_video{ host='youtube', string=s }
+--					else
+--						local d = download_video{ host='vimeo', string=s }
+--					end
+--				end
+--				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
+--					local d = download_video{ host='tumblr', string=t }
+--				end
+--				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
+--					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
+--					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
+--					local content = http.request(audio_url .. plead)
+--					-- extract and unique string as filename
+--					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
+--					outfile = AUDOUTDIR .. n .. '.mp3'
 --					put(outfile, content)
 --				end
-				-- currently video backup is limited to vimeo and tumblr hosted videos
-				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
-					if v:match('youtube%.com/v/') then
-						-- extract id of video
-						local id = string.match(v, '.*/(.-)[?&]')
-						-- ask for info to get the token
-						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
-						local token = string.match(info_content, 'token=(.-)&')
-						local title = string.match(info_content, 'title=(.-)&')
---						-- request the video itself
-						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
-						put(VIDOUTDIR .. title, video_content)
-					elseif v:match('youtube%.com/embed/') then
-						local id = string.match(v, '.*/(.-)$')
-						-- ask for info to get the token
-						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
-						local token = string.match(info_content, 'token=(.-)&')
-						local title = string.match(info_content, 'title=(.-)&')
---						-- request the video itself
-						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
-						put(VIDOUTDIR .. title, video_content)
-					else
---						print("vimeo video")
-						local content = http.request(v)
-						download_video('vimeo', content)
-					end
-				end
-				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
-					if s:match('youtube%.com/v/') then
-						-- extract id of video
-						local id = string.match(s, '.*/(.-)[?&]')
-						-- ask for info to get the token
-						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
-						local token = string.match(info_content, 'token=(.-)&')
-						local title = string.match(info_content, 'title=(.-)&')
---						-- request the video itself
-						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
-						put(VIDOUTDIR .. title, video_content)
-					elseif s:match('youtube%.com/embed/') then
-						local id = string.match(s, '.*/(.-)$')
-						-- ask for info to get the token
-						local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
-						local token = string.match(info_content, 'token=(.-)&')
-						local title = string.match(info_content, 'title=(.-)&')
---						-- request the video itself
-						local video_content = http.request('http://www.youtube.com/get_video?video_id=' .. id .. '&t=' .. token .. '&asv=2')
-						put(VIDOUTDIR .. title, video_content)
-					else
---						print("vimeo video")
-						local content = http.request(s)
-						download_video('vimeo', content)
-					end
-				end
-				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
-					-- tumblr hosted videos don't need to be sent to 
-					-- download_video
-					--
-					-- extract filename
-					local n = string.gsub(t, '.*/', '')
-					local outfile = VIDOUTDIR .. n .. '.mp4'
-					
-					local content = http.request(t)
-					put(outfile, content)
-				end
-				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
-					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
-					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
-					local content = http.request(audio_url .. plead)
-					-- extract and unique string as filename
-					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
-					outfile = AUDOUTDIR .. n .. '.mp3'
-					put(outfile, content)
-				end
 			end
 		end
 	end
