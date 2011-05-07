@@ -126,7 +126,7 @@ for files in lfs.dir(XMLOUTDIR) do
 --					end
 --					put(outfile, content)
 --				end
-				-- currently audio and video backup is limited to vimeo and tumblr videos
+				-- currently video backup is limited to vimeo and tumblr hosted videos
 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
 					if v:match('youtube%.com/v/') then
 						-- extract id of video
@@ -191,10 +191,12 @@ for files in lfs.dir(XMLOUTDIR) do
 					put(outfile, content)
 				end
 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
-					local content = http.request(a)
+					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
+					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
+					local content = http.request(audio_url .. plead)
 					-- extract and unique string as filename
 					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
-					outfile = AUDOUTDIR .. n .. '.swf'
+					outfile = AUDOUTDIR .. n .. '.mp3'
 					put(outfile, content)
 				end
 			end
