@@ -133,7 +133,7 @@ function download_image(arg)
 	if type(arg.string) ~= "string" then
 		error("no string given")
 	else
--- 		local content = http.request(arg.string)
+ 		local content = http.request(arg.string)
 		-- extract filename
 		local n = string.gsub(arg.string, '.*/', '')
 		-- check for filenames with an extension, otherwise add it
@@ -143,17 +143,24 @@ function download_image(arg)
 		else
 			outfile = IMGOUTDIR .. n
 		end
-		local filename, px500 = string.match(outfile, 'images/(.*)(o1_[45]00)[.]')
+		-- catch 500/400px images (named tumblr_.*o1_[45]00)
+		local filename, px500 = string.match(outfile, 'images/(.*)(o1_r?1?_?[45]00)[.]')
 		if px500 then
+			-- if it's a 500/400px image generate the filename of the, 
+			-- hypothetical full sized image and check if it is already 
+			-- been downloaded. Download the current image only if there 
+			-- isn't one with the same filename but without the 
+			-- o1_[45]00 part
 			local full_file = IMGOUTDIR .. filename .. ext
-			print(full_file)
-			local attr = lfs.attributes(full_file)
-			print(attr)
--- 			print(px500)
--- 			print(filename)
--- 			print(ext)
+			local file_exists = io.open(full_file)
+			if file_exists then
+				io.close(file_exists)
+				return
+			else
+				put(outfile, content)
+			end
 		end
--- 		put(outfile, content)
+ 		put(outfile, content)
 	end
 end
 
@@ -164,14 +171,15 @@ TUMBLRAPIURL = TUMBLRURL .. "/api/read"
 local xmlout = http.request(TUMBLRAPIURL)
 local totalposts = string.match(xmlout, "<posts start=\".-\" total=\"(.-)\">")
 
--- while start < tonumber(totalposts) do
--- 	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
--- 	local xmlout = http.request(TUMBLRAPIURL)
--- 	local startpost, endpost = posts_filename(start, num)
--- 	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
--- 	put(outfile, xmlout)
--- 	start = start + num
--- end
+ while start < tonumber(totalposts) do
+ 	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
+ 	local xmlout = http.request(TUMBLRAPIURL)
+ 	local startpost, endpost = posts_filename(start, num)
+ 	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
+ 	put(outfile, xmlout)
+ 	start = start + num
+ end
+
 
 -- xml parsing
 for files in lfs.dir(XMLOUTDIR) do
@@ -183,36 +191,36 @@ for files in lfs.dir(XMLOUTDIR) do
 				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
 					local d = download_image{ string=m }
 				end
--- 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
--- 					if v:match('youtube%.com/v/') then
--- 						local d = download_video{ host='youtube', string=v }
--- 					elseif v:match('youtube%.com/embed/') then
--- 						local d = download_video{ host='youtube', string=v, embed = true }
--- 					else
--- 						local d = download_video{ host='vimeo', string=v }
--- 					end
--- 				end
--- 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
--- 					if s:match('youtube%.com/v/') then
--- 						local d = download_video{ host='youtube', string=s }
--- 					elseif s:match('youtube%.com/embed/') then
--- 						local d = download_video{ host='youtube', string=s }
--- 					else
--- 						local d = download_video{ host='vimeo', string=s }
--- 					end
--- 				end
--- 				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
--- 					local d = download_video{ host='tumblr', string=t }
--- 				end
--- 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
--- 					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
--- 					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
--- 					local content = http.request(audio_url .. plead)
--- 					-- extract and unique string as filename
--- 					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
--- 					outfile = AUDOUTDIR .. n .. '.mp3'
--- 					put(outfile, content)
--- 				end
+ 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
+ 					if v:match('youtube%.com/v/') then
+ 						local d = download_video{ host='youtube', string=v }
+ 					elseif v:match('youtube%.com/embed/') then
+ 						local d = download_video{ host='youtube', string=v, embed = true }
+ 					else
+ 						local d = download_video{ host='vimeo', string=v }
+ 					end
+ 				end
+ 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
+ 					if s:match('youtube%.com/v/') then
+ 						local d = download_video{ host='youtube', string=s }
+ 					elseif s:match('youtube%.com/embed/') then
+ 						local d = download_video{ host='youtube', string=s }
+ 					else
+ 						local d = download_video{ host='vimeo', string=s }
+ 					end
+ 				end
+ 				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
+ 					local d = download_video{ host='tumblr', string=t }
+ 				end
+ 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
+ 					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
+ 					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
+ 					local content = http.request(audio_url .. plead)
+ 					-- extract and unique string as filename
+ 					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
+ 					outfile = AUDOUTDIR .. n .. '.mp3'
+ 					put(outfile, content)
+ 				end
 			end
 		end
 	end
