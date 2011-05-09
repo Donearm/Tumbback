@@ -171,15 +171,14 @@ TUMBLRAPIURL = TUMBLRURL .. "/api/read"
 local xmlout = http.request(TUMBLRAPIURL)
 local totalposts = string.match(xmlout, "<posts start=\".-\" total=\"(.-)\">")
 
- while start < tonumber(totalposts) do
- 	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
- 	local xmlout = http.request(TUMBLRAPIURL)
- 	local startpost, endpost = posts_filename(start, num)
- 	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
- 	put(outfile, xmlout)
- 	start = start + num
- end
-
+while start < tonumber(totalposts) do
+	TUMBLRAPIURL = TUMBLRURL .. string.format("/api/read/?start=%s&num=%s", start, num)
+	local xmlout = http.request(TUMBLRAPIURL)
+	local startpost, endpost = posts_filename(start, num)
+	local outfile = XMLOUTDIR .. "/posts_" .. startpost .. "_" .. endpost
+	put(outfile, xmlout)
+	start = start + num
+end
 
 -- xml parsing
 for files in lfs.dir(XMLOUTDIR) do
@@ -191,36 +190,36 @@ for files in lfs.dir(XMLOUTDIR) do
 				for m in line:gmatch('<photo[-]url%smax[-]width="1?[25][80]0">(.-)</photo[-]url>') do
 					local d = download_image{ string=m }
 				end
- 				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
- 					if v:match('youtube%.com/v/') then
- 						local d = download_video{ host='youtube', string=v }
- 					elseif v:match('youtube%.com/embed/') then
- 						local d = download_video{ host='youtube', string=v, embed = true }
- 					else
- 						local d = download_video{ host='vimeo', string=v }
- 					end
- 				end
- 				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
- 					if s:match('youtube%.com/v/') then
- 						local d = download_video{ host='youtube', string=s }
- 					elseif s:match('youtube%.com/embed/') then
- 						local d = download_video{ host='youtube', string=s }
- 					else
- 						local d = download_video{ host='vimeo', string=s }
- 					end
- 				end
- 				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
- 					local d = download_video{ host='tumblr', string=t }
- 				end
- 				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
- 					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
- 					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
- 					local content = http.request(audio_url .. plead)
- 					-- extract and unique string as filename
- 					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
- 					outfile = AUDOUTDIR .. n .. '.mp3'
- 					put(outfile, content)
- 				end
+				for v in line:gmatch('<video[-]source.*src="(.-)".-</video[-]source>') do
+					if v:match('youtube%.com/v/') then
+						local d = download_video{ host='youtube', string=v }
+					elseif v:match('youtube%.com/embed/') then
+						local d = download_video{ host='youtube', string=v, embed = true }
+					else
+						local d = download_video{ host='vimeo', string=v }
+					end
+				end
+				for s in line:gmatch('<video[-]player.*src="(.-)".-</video[-]player>') do
+					if s:match('youtube%.com/v/') then
+						local d = download_video{ host='youtube', string=s }
+					elseif s:match('youtube%.com/embed/') then
+						local d = download_video{ host='youtube', string=s }
+					else
+						local d = download_video{ host='vimeo', string=s }
+					end
+				end
+				for t in line:gmatch("'(.-/video_file/[0-9]+/tumblr_.-)'") do
+					local d = download_video{ host='tumblr', string=t }
+				end
+				for a in line:gmatch('<audio[-]player>.-src="(.-)"') do
+					local audio_url = string.match(a, '.*audio_file=(.-)&amp;')
+					local plead = '?plead=please-dont-download-this-or-our-lawyers-wont-let-us-host-audio'
+					local content = http.request(audio_url .. plead)
+					-- extract and unique string as filename
+					local n = string.gsub(a, '.*audio_file/([0-9]+)/.*', "%1")
+					outfile = AUDOUTDIR .. n .. '.mp3'
+					put(outfile, content)
+				end
 			end
 		end
 	end
