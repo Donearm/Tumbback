@@ -222,6 +222,12 @@ while start < tonumber(totalposts) do
 	start = start + num
 end
 
+-- if supplying a '-p' argument as the third, then only download the 
+-- posts and not any media.
+if arg[3] == '-p' then
+	os.exit()
+end
+
 --- Xml parsing of the Tumblr page.
 for files in lfs.dir(XMLOUTDIR) do
 	if files ~= "." and file ~= ".." then
