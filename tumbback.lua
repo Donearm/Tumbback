@@ -1,6 +1,7 @@
 #!/usr/bin/env lua
 
--- Copyright 2011 Gianluca Fiore © <forod.g@gmail.com>
+--- Copyright 2011 Gianluca Fiore © <forod.g@gmail.com>
+-- @author Gianluca Fiore
 --
 -- You may redistribute this software and/or modify it under either
 -- the terms of the GNU Lesser General Public License version 3
@@ -37,6 +38,9 @@
 http = require("socket.http")
 lfs = require("lfs")
 
+--- Write data to a file.
+-- @param f The filename.
+-- @param c The data.
 function put(f, c)
 	if c ~= nil then
 		-- write only if we have something to
@@ -46,6 +50,8 @@ function put(f, c)
 	end
 end
 
+--- Check if a directory exits and if it doesn't, create it.
+-- @param d The directory to be created.
 function chkmk_dir(d)
 	local p = io.open(d)
 	if not p then
@@ -80,7 +86,7 @@ function posts_filename(s, e)
 	return startpost, endpost
 end
 
-
+--- Check that we got the correct command line argument.
 TUMBLRURL = arg[1] or nil
 if not TUMBLRURL or not string.match(arg[1], "^http://") then
 	io.write(string.format("Usage: %s tumblr_url [path]\n", arg[0]))
@@ -106,6 +112,8 @@ chkmk_dir(VIDOUTDIR)
 VIMEOBASEURL = 'http://vimeo.com/moogaloop/'
 
 
+--- Download a video among the supported hostings.
+-- @param arg A table with 2 strings, "host" and "string".
 function download_video(arg)
 	-- both arg.host and arg.string must be strings
 	if type(arg.host) ~= "string" or type(arg.string) ~= "string" then
@@ -161,6 +169,8 @@ function download_video(arg)
 	end
 end
 
+--- Download an image from Tumblr.
+-- @param arg A string containing the uri of the image.
 function download_image(arg)
 	if type(arg.string) ~= "string" then
 		error("no string given")
@@ -212,7 +222,7 @@ while start < tonumber(totalposts) do
 	start = start + num
 end
 
--- xml parsing
+--- Xml parsing of the Tumblr page.
 for files in lfs.dir(XMLOUTDIR) do
 	if files ~= "." and file ~= ".." then
 		local f = XMLOUTDIR .. '/' .. files
@@ -256,4 +266,3 @@ for files in lfs.dir(XMLOUTDIR) do
 		end
 	end
 end
-
