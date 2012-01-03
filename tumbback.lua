@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 
---- Copyright 2011 Gianluca Fiore © <forod.g@gmail.com>
+--- Copyright 2011-2012, Gianluca Fiore © <forod.g@gmail.com>
 -- @author Gianluca Fiore
 --
 -- You may redistribute this software and/or modify it under either
