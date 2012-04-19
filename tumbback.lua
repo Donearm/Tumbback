@@ -144,6 +144,11 @@ function download_video(arg)
 			local info_content = http.request('http://www.youtube.com/get_video_info?video_id=' .. id)
 --			local token = string.match(info_content, 'token=(.-)&')
 			local title = string.match(info_content, 'title=(.-)&')
+			if not title then
+				-- if title didn't match it's because video is not
+				-- available, skip it.
+				return
+			end
 			-- request the video itself
 			-- get the html page of the video to extract the url and its 
 			-- parameters from youtube's cache
