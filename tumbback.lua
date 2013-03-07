@@ -35,8 +35,8 @@
 
 -- roughly based on http://codequaff.us/post/38721200/spumblr-lua
 
-http = require("socket.http")
-lfs = require("lfs")
+local http = require("socket.http")
+local lfs = require("lfs")
 
 --- Write data to a file.
 -- @param f The filename.
@@ -213,7 +213,7 @@ end
 
 local start = 0
 local num = 50 -- tumblr api limit
-TUMBLRAPIURL = TUMBLRURL .. "/api/read"
+local TUMBLRAPIURL = TUMBLRURL .. "/api/read"
 
 local xmlout = http.request(TUMBLRAPIURL)
 local totalposts = string.match(xmlout, "<posts start=\".-\" total=\"(.-)\">")
