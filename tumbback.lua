@@ -96,7 +96,7 @@ if not TUMBLRURL or not string.match(arg[1], "^http://") then
 end
 
 SITETITLE = string.gsub(TUMBLRURL, "^http://", '')
-BASEDIR = arg[2] or '/mnt/documents/stuff/blogs/backup/'
+BASEDIR = arg[2] or '/mnt/d/Stuff/blogs/backup/'
 XMLOUTDIR = BASEDIR .. SITETITLE
 IMGOUTDIR = XMLOUTDIR .. '/images/'
 AUDOUTDIR = XMLOUTDIR .. '/audio/'
