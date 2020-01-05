@@ -1,7 +1,7 @@
 #!/usr/bin/env lua
 
 -- @author Gianluca Fiore
--- @copyright 2011-2015, Gianluca Fiore <forod.g@gmail.com>
+-- @copyright 2011-2020, Gianluca Fiore <forod.g@gmail.com>
 --
 -- You may redistribute this software and/or modify it under either
 -- the terms of the GNU Lesser General Public License version 3
